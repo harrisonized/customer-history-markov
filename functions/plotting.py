@@ -1,8 +1,8 @@
 import pandas as pd
 import plotly.graph_objs as go
 from .data import title_case_to_initials
-from .colors import (color_dict, color_list,
-	                 generate_color_dict, hex_to_rgba, update_rgba_opacity)
+from .colors import (default_colors,
+                     generate_label_colors, hex_to_rgba, update_rgba_opacity)
 
 
 # Functions included in this file:
@@ -41,29 +41,25 @@ def digraph_dot_from_transition_matrix(transition_matrix, choices,
     }}
     """
     choices_initials = [title_case_to_initials(x) for x in choices]
-    
-    
+
     header_text = []
-    if colors:     
+    if colors:
         for choice, color in zip(choices_initials, colors):
             header_text.append(f"""\n    {choice}[shape={shape},style=filled,color={color}]""")
     else:
         for choice in choices_initials:
             header_text.append(f"""\n    {choice}[shape={shape}]""")
     header = "".join(header_text)
-    
-    
+
     body_text = []
     for i, choice in enumerate(choices_initials):
         for j, value in enumerate(transition_matrix[i]):
             body_text.append(f"""\n    {choices_initials[i]} -> {choices_initials[j]}[label="{value}"];""")
     body = "".join(body_text)
 
-    
     digraph = f"""digraph {{
     rankdir=LR;""" + header + body + "\n}}"
 
-    
     return digraph
 
 
@@ -172,8 +168,7 @@ def make_link_and_node_df(sankey_df, num_steps: int, dropna=False):
 
 
 def plot_sankey(link_df, node_df,
-                color_list=color_list,
-                color_dict=None,
+                label_colors=None,
                 title="Basic Sankey Diagram"):
     """Takes link_df and node_df as inputs:
     
@@ -189,8 +184,8 @@ def plot_sankey(link_df, node_df,
     ---+-----+-------
      0 |  0  | cat_1
      1 |  1  | cat_2
-     
-    color_list should contain hex colors
+    
+    label_colors should be hex
     """
     num_steps = node_df['step'].nunique() - 1
     node_df.loc[:, 'x_pos'] = node_df['step'].astype('category').cat.codes / num_steps
@@ -209,16 +204,16 @@ def plot_sankey(link_df, node_df,
                              }
                        )
 
-    if color_dict:
-        node_df['color'] = node_df['label'].apply(lambda cat: hex_to_rgba(color_dict[cat], opacity=0.9))
+    if label_colors:
+        node_df['color'] = node_df['label'].apply(lambda cat: hex_to_rgba(label_colors[cat], opacity=0.9))
         sankey.node.color = node_df['color'].to_list()
         sankey.link.color = sankey.node.color
         sankey.link.color = [update_rgba_opacity(sankey.node.color[idx], 0.3) for idx in sankey.link.source]
     else:
-        color_dict = generate_color_dict(node_df['label'].unique(), color_list)
-        node_df['color'] = node_df['label'].apply(lambda cat: color_dict[cat])
+        label_colors = generate_label_colors(node_df['label'].unique(), default_colors)
+        node_df['color'] = node_df['label'].apply(lambda cat: label_colors[cat])
         sankey.node.color = node_df['color'].to_list()
-        
+
     fig = go.Figure(data=sankey)
     fig.update_layout(title_text=title, font_size=10)
     return fig
