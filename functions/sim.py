@@ -5,36 +5,35 @@ from .data import truncate_timestamp, uniform_random_timestamp
 
 
 class Customer:
+    order_num = 0
+    max_order_num = 4  # stop recording after 5 rows
+    
+    # generate timestamps
+    earliest_start = dt.datetime(2020, 11, 24, 10, 15, 0)
+    latest_start = dt.datetime(2020, 11, 24, 12, 0, 0)
+
+    # starting conditions
+    choices = ['Space Mountain', 'Indiana Jones Adventure', 'Haunted Mansion']
+    initial_weights = [0.50, 0.30, 0.20]
+
+    # model parameters
+    env_start = dt.datetime(2020, 11, 24, 10, 0, 0)
+    transition_matrix = pd.DataFrame(
+        [[0.8, 0.15, 0.05],
+         [0.3, 0.65, 0.05],
+         [0.15, 0.05, 0.8]],
+        index=self.choices,
+        columns=self.choices,
+    )
+    wait_times = [65, 44, 23]
+    dropout_rates = [0.9, 0.3, 0.8]
+
     def __init__(self, env, results, customer_id):
-        
         self.env = env
         self.results = results
-        
         self.customer_id = customer_id
-        self.order_num = 0
-        self.max_order_num = 4  # stop recording after 5 rows
-        
-        # generate timestamps
-        self.earliest_start = dt.datetime(2020, 11, 24, 10, 15, 0)
-        self.latest_start = dt.datetime(2020, 11, 24, 12, 0, 0)
         self.current_time = truncate_timestamp(self.first_timestamp())
-
-        # starting conditions
-        self.choices = ['Space Mountain', 'Indiana Jones Adventure', 'Haunted Mansion']
-        self.initial_weights = [0.50, 0.30, 0.20]
         self.current_choice = self.first_choice()
-        
-        # model parameters
-        self.env_start = dt.datetime(2020, 11, 24, 10, 0, 0)
-        self.transition_matrix = pd.DataFrame(
-            [[0.8, 0.15, 0.05],
-             [0.3, 0.65, 0.05],
-             [0.15, 0.05, 0.8]],
-            index=self.choices,
-            columns=self.choices,
-        )
-        self.wait_times = [65, 44, 23]
-        self.dropout_rates = [0.9, 0.3, 0.8]
         self.is_active = True        
 
     def make_choices(self):
